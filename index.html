@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ProxiGo - Activités près de chez toi</title>
+    <meta name="description" content="Découvre les activités et associations près de chez toi.">
+
+    <link rel="icon" href="file:///home/chronos/u-32079c9234daa057945ae115d22654ad8cbed560/MyFiles/Downloads/application/image/Icône ProxiGo _ activités locales en mouvement.png">
+    <link rel="stylesheet" href="style.css">
+
+    <meta name="theme-color" content="#10152B">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+</head>
+
+<body>
+
+    <header>
+        <a href="#" class="logo">Proxi<span>Go</span></a>
+
+        <nav>
+            <a href="#activites">Activités</a>
+            <a href="#categories">Catégories</a>
+            <a href="#apropos">À propos</a>
+        </nav>
+
+        <button class="connexion">Connexion</button>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>Découvre ce qui se passe <span>près de chez toi.</span></h1>
+
+            <p>
+                Trouve des activités, des clubs et des associations
+                autour de toi.
+            </p>
+
+            <div class="search">
+                <input
+                    type="search"
+                    id="recherche"
+                    placeholder="Quelle activité recherches-tu ?"
+                >
+                <button id="boutonRecherche">Rechercher</button>
+            </div>
+        </section>
+        <section id="carte-section">
+            <h2>Les activités autour de moi</h2>
+
+             <button id="localiser">
+               📍 Trouver les activités près de moi
+             </button>
+
+            <p id="messageLocalisation"></p>
+
+               <div id="map"></div>
+        </section>
+        <section id="categories">
+            <h2>Explorer les catégories</h2>
+
+            <div class="categories">
+                <button data-category="all">Toutes</button>
+                <button data-category="sport">⚽ Sport</button>
+                <button data-category="musique">🎵 Musique</button>
+                <button data-category="art">🎨 Art</button>
+                <button data-category="loisirs">🎮 Loisirs</button>
+                <button data-category="culture">📚 Culture</button>
+            </div>
+        </section>
+
+        <section id="activites">
+            <h2>Activités à découvrir</h2>
+
+            <div class="activities" id="listeActivites">
+                <p>Chargement des activités...</p>
+            </div>
+        </section>
+    </main>
+    
+
+<section id="ajout-activite">
+    <h2>Proposer une activité</h2>
+    <p>Vous organisez une activité ? Faites-la découvrir !</p>
+
+    <form id="formActivite">
+        <input id="titre" type="text"
+            placeholder="Nom de l'activité" required>
+
+        <textarea id="description"
+            placeholder="Description" required></textarea>
+
+        <input id="categorie" type="text"
+            placeholder="Catégorie (sport, musique...)" required>
+
+        <input id="ville" type="text"
+            placeholder="Ville" required>
+
+        <input id="adresse" type="text"
+            placeholder="Adresse">
+
+        <input id="prix" type="number"
+            placeholder="Prix en euros" min="0" step="0.01">
+
+        <input id="ageMin" type="number"
+            placeholder="Âge minimum">
+
+        <input id="ageMax" type="number"
+            placeholder="Âge maximum">
+
+        <input id="horaires" type="text"
+            placeholder="Horaires">
+
+        <button type="submit">Proposer mon activité</button>
+    </form>
+
+    <p id="messageFormulaire"></p>
+</section>
+
+
+    <footer id="apropos">
+        <p>© 2026 ProxiGo - Toutes les activités près de chez toi.</p>
+    </footer>
+    <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,327 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - ProxiGo</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        header {
+            background: #1d4ed8;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        main {
+            max-width: 850px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 3px 15px #00000010;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            margin: 12px 0;
+            border: 1px solid #cbd5e1;
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            background: #2563eb;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .activity {
+            border: 1px solid #e2e8f0;
+            padding: 18px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .approve {
+            background: #15803d;
+            margin-right: 8px;
+        }
+
+        .reject {
+            background: #dc2626;
+        }
+
+        #dashboard, #connexion {
+            display: none;
+        }
+
+        #message {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>ProxiGo</h1>
+    <p>Administration</p>
+</header>
+
+<main>
+
+    <section id="connexion" class="panel">
+        <h2>Connexion administrateur</h2>
+
+        <form id="formConnexion">
+            <input
+                type="email"
+                id="email"
+                placeholder="Adresse e-mail"
+                required
+            >
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Mot de passe"
+                required
+            >
+
+            <button type="submit">Se connecter</button>
+        </form>
+
+        <p id="message"></p>
+    </section>
+
+    <section id="dashboard" class="panel">
+        <h2>Tableau de bord</h2>
+
+        <p>Bienvenue dans l'administration de ProxiGo.</p>
+
+        <h3>Activités en attente</h3>
+
+        <div id="listeAttente">
+            Chargement...
+        </div>
+
+        <button id="deconnexion">Se déconnecter</button>
+    </section>
+
+</main>
+
+<script>
+    const SUPABASE_URL =
+        "https://glmzqsdccyrnmudwqiqu.supabase.co";
+
+    const SUPABASE_KEY = "sb_publishable_pFZCAikFqvEynZDTwvgIwA_xK7ZpRGZ";
+
+    const client = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+    const connexion = document.getElementById("connexion");
+    const dashboard = document.getElementById("dashboard");
+    const message = document.getElementById("message");
+    const listeAttente = document.getElementById("listeAttente");
+
+    async function verifierSession() {
+        const { data } = await client.auth.getSession();
+
+        if (data.session) {
+            await verifierAdministrateur(data.session.user);
+        } else {
+            connexion.style.display = "block";
+            dashboard.style.display = "none";
+        }
+    }
+
+    async function verifierAdministrateur(user) {
+        const { data, error } = await client
+            .from("admins")
+            .select("user_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (error || !data) {
+            alert("Accès réservé aux administrateurs.");
+            await client.auth.signOut();
+            connexion.style.display = "block";
+            dashboard.style.display = "none";
+            return;
+        }
+
+        connexion.style.display = "none";
+        dashboard.style.display = "block";
+
+        chargerActivitesEnAttente();
+    }
+
+    document.getElementById("formConnexion")
+        .addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            message.textContent = "Connexion en cours...";
+
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            const { data, error } = await client.auth
+                .signInWithPassword({ email, password });
+
+            if (error) {
+                message.textContent = "Identifiants incorrects.";
+                return;
+            }
+
+            await verifierAdministrateur(data.user);
+        });
+
+    async function chargerActivitesEnAttente() {
+        listeAttente.textContent = "Chargement...";
+
+        const { data, error } = await client
+            .from("activities")
+            .select("*")
+            .eq("published", false)
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            console.error(error);
+            listeAttente.textContent =
+                "Impossible de charger les activités.";
+            return;
+        }
+
+        listeAttente.innerHTML = "";
+
+        if (data.length === 0) {
+            listeAttente.textContent =
+                "Aucune activité en attente.";
+            return;
+        }
+
+        data.forEach((activite) => {
+            const carte = document.createElement("article");
+            carte.className = "activity";
+
+            const titre = document.createElement("h3");
+            titre.textContent = activite.title;
+
+            const ville = document.createElement("p");
+            ville.textContent = "Ville : " + activite.city;
+
+            const description = document.createElement("p");
+            description.textContent = activite.description || "";
+
+            const prix = document.createElement("p");
+            prix.textContent = activite.price == null
+                ? "Prix non renseigné"
+                : Number(activite.price) === 0
+                    ? "Gratuit"
+                    : activite.price + " €";
+
+            const accepter = document.createElement("button");
+            accepter.className = "approve";
+            accepter.textContent = "Accepter";
+
+            accepter.addEventListener("click", () => {
+                modifierActivite(activite.id, true);
+            });
+
+            const refuser = document.createElement("button");
+            refuser.className = "reject";
+            refuser.textContent = "Refuser";
+
+            refuser.addEventListener("click", () => {
+                if (confirm("Supprimer définitivement cette proposition ?")) {
+                    supprimerActivite(activite.id);
+                }
+            });
+
+            carte.append(
+                titre,
+                ville,
+                description,
+                prix,
+                accepter,
+                refuser
+            );
+
+            listeAttente.appendChild(carte);
+        });
+    }
+
+    async function modifierActivite(id, publiee) {
+        const { error } = await client
+            .from("activities")
+            .update({ published: publiee })
+            .eq("id", id);
+
+        if (error) {
+            alert("Erreur : impossible de valider cette activité.");
+            console.error(error);
+            return;
+        }
+
+        chargerActivitesEnAttente();
+    }
+
+    async function supprimerActivite(id) {
+        const { error } = await client
+            .from("activities")
+            .delete()
+            .eq("id", id);
+
+        if (error) {
+            alert("Erreur : impossible de supprimer cette activité.");
+            console.error(error);
+            return;
+        }
+
+        chargerActivitesEnAttente();
+    }
+
+    document.getElementById("deconnexion")
+        .addEventListener("click", async () => {
+            await client.auth.signOut();
+            dashboard.style.display = "none";
+            connexion.style.display = "block";
+        });
+
+    verifierSession();
+</script>
+
+</body>
+</html>

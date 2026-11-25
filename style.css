@@ -1,0 +1,251 @@
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #10152B;
+    color: white;
+}
+
+header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 25px 8%;
+    background: #151C36;
+}
+
+.logo {
+    font-size: 28px;
+    font-weight: bold;
+    color: white;
+    text-decoration: none;
+}
+
+.logo span {
+    color: #8B65FF;
+}
+
+nav {
+    display: flex;
+    gap: 25px;
+}
+
+nav a {
+    color: white;
+    text-decoration: none;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 20px;
+}
+
+.connexion {
+    background: #805BFF;
+    color: white;
+}
+
+.hero {
+    text-align: center;
+    padding: 100px 20px;
+}
+
+.hero h1 {
+    font-size: 42px;
+    max-width: 750px;
+    margin: auto;
+}
+
+.hero h1 span {
+    color: #9878FF;
+}
+
+.hero p {
+    color: #B8BDD0;
+    margin: 20px 0 30px;
+}
+
+.search {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.search input {
+    width: 350px;
+    padding: 15px;
+    border-radius: 10px;
+    border: none;
+}
+
+.search button {
+    background: #805BFF;
+    color: white;
+}
+
+section:not(.hero) {
+    padding: 35px 8%;
+}
+
+h2 {
+    margin-bottom: 25px;
+}
+
+.categories, .activities {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.categories button {
+    background: #252D4D;
+    color: white;
+}
+
+.activity {
+    background: #1B2340;
+    padding: 22px;
+    border-radius: 15px;
+    flex: 1 1 220px;
+}
+
+.activity h3 {
+    margin: 15px 0;
+}
+
+.activity p {
+    color: #B8BDD0;
+    margin-bottom: 10px;
+}
+
+.activity button {
+    background: #805BFF;
+    color: white;
+    margin-top: 10px;
+}
+
+.emoji {
+    font-size: 40px;
+}
+
+footer {
+    text-align: center;
+    padding: 30px;
+    color: #AAB0C5;
+}
+
+@media (max-width: 650px) {
+    header {
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    nav {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .hero h1 {
+        font-size: 30px;
+    }
+
+    .search {
+        flex-direction: column;
+    }
+
+    .search input {
+        width: 100%;
+    }
+}
+
+.activity {
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+
+.activity:hover {
+    transform: translateY(-4px);
+}
+
+.activity h3 {
+    color: #2563eb;
+    margin-bottom: 10px;
+}
+
+.activity p {
+    margin: 8px 0;
+    color: #444;
+}
+
+.activity-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 12px;
+}
+
+#ajout-activite {
+    max-width: 600px;
+    margin: 50px auto;
+    padding: 25px;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+}
+
+#formActivite {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#formActivite input,
+#formActivite textarea {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font: inherit;
+}
+
+#formActivite button {
+    padding: 13px;
+    border: none;
+    border-radius: 8px;
+    background: #2563eb;
+    color: white;
+    cursor: pointer;
+}
+#carte-section {
+    margin: 40px auto;
+    max-width: 1100px;
+    padding: 20px;
+}
+
+#map {
+    height: 450px;
+    width: 100%;
+    border-radius: 15px;
+    margin-top: 20px;
+    z-index: 1;
+}
+
+#localiser {
+    background: #2563eb;
+    color: white;
+    padding: 13px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
