@@ -426,7 +426,8 @@ async function modifierActivite(id, publiee) {
 console.log("Le système de géolocalisation est chargé !");
 document.getElementById("geolocaliserExistantes")
     .addEventListener("click", async () => {
-
+    console.log("CLIC SUR LE BOUTON DÉTECTÉ");
+    alert("Le bouton fonctionne !");
         const message = document.getElementById("messageGeolocalisation");
         const bouton = document.getElementById("geolocaliserExistantes");
 
