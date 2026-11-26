@@ -1,0 +1,528 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - ProxiGo</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #1e293b;
+        }
+
+        header {
+            background: #1d4ed8;
+            color: white;
+            padding: 25px;
+            text-align: center;
+        }
+
+        main {
+            max-width: 850px;
+            margin: 35px auto;
+            padding: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 3px 15px #00000010;
+            margin-bottom: 20px;
+        }
+
+        input, button {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        input {
+            display: block;
+            width: 100%;
+            margin: 12px 0;
+            border: 1px solid #cbd5e1;
+        }
+
+        button {
+            border: none;
+            cursor: pointer;
+            background: #2563eb;
+            color: white;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .activity {
+            border: 1px solid #e2e8f0;
+            padding: 18px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .approve {
+            background: #15803d;
+            margin-right: 8px;
+        }
+
+        .reject {
+            background: #dc2626;
+        }
+
+        #dashboard, #connexion {
+            display: none;
+        }
+
+        #message {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>ProxiGo</h1>
+    <p>Administration</p>
+</header>
+
+<main>
+
+    <section id="connexion" class="panel">
+        <h2>Connexion administrateur</h2>
+
+        <form id="formConnexion">
+            <input
+                type="email"
+                id="email"
+                placeholder="Adresse e-mail"
+                required
+            >
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Mot de passe"
+                required
+            >
+
+            <button type="submit">Se connecter</button>
+        </form>
+
+        <p id="message"></p>
+    </section>
+
+    <section id="dashboard" class="panel">
+        <h2>Tableau de bord</h2>
+
+        <p>Bienvenue dans l'administration de ProxiGo.</p>
+
+        <h3>Activités en attente</h3>
+
+        <button id="geolocaliserExistantes">
+         📍 Géolocaliser les activités déjà publiées
+        </button>
+
+        <p id="messageGeolocalisation"></p>
+
+        <div id="listeAttente">
+            Chargement...
+        </div>
+
+        <button id="deconnexion">Se déconnecter</button>
+    </section>
+
+</main>
+
+<script>
+    const SUPABASE_URL =
+        "https://glmzqsdccyrnmudwqiqu.supabase.co";
+
+    const SUPABASE_KEY = "sb_publishable_pFZCAikFqvEynZDTwvgIwA_xK7ZpRGZ";
+
+    const client = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+    );
+
+    const connexion = document.getElementById("connexion");
+    const dashboard = document.getElementById("dashboard");
+    const message = document.getElementById("message");
+    const listeAttente = document.getElementById("listeAttente");
+
+    async function verifierSession() {
+        const { data } = await client.auth.getSession();
+
+        if (data.session) {
+            await verifierAdministrateur(data.session.user);
+        } else {
+            connexion.style.display = "block";
+            dashboard.style.display = "none";
+        }
+    }
+
+    async function verifierAdministrateur(user) {
+        const { data, error } = await client
+            .from("admins")
+            .select("user_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+        if (error || !data) {
+            alert("Accès réservé aux administrateurs.");
+            await client.auth.signOut();
+            connexion.style.display = "block";
+            dashboard.style.display = "none";
+            return;
+        }
+
+        connexion.style.display = "none";
+        dashboard.style.display = "block";
+
+        chargerActivitesEnAttente();
+    }
+
+    document.getElementById("formConnexion")
+        .addEventListener("submit", async (event) => {
+            event.preventDefault();
+
+            message.textContent = "Connexion en cours...";
+
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+
+            const { data, error } = await client.auth
+                .signInWithPassword({ email, password });
+
+            if (error) {
+                message.textContent = "Identifiants incorrects.";
+                return;
+            }
+
+            await verifierAdministrateur(data.user);
+        });
+
+    async function chargerActivitesEnAttente() {
+        listeAttente.textContent = "Chargement...";
+
+        const { data, error } = await client
+            .from("activities")
+            .select("*")
+            .eq("published", false)
+            .order("created_at", { ascending: false });
+
+        if (error) {
+            console.error(error);
+            listeAttente.textContent =
+                "Impossible de charger les activités.";
+            return;
+        }
+
+        listeAttente.innerHTML = "";
+
+        if (data.length === 0) {
+            listeAttente.textContent =
+                "Aucune activité en attente.";
+            return;
+        }
+
+        data.forEach((activite) => {
+            const carte = document.createElement("article");
+            carte.className = "activity";
+
+            const titre = document.createElement("h3");
+            titre.textContent = activite.title;
+
+            const ville = document.createElement("p");
+            ville.textContent = "Ville : " + activite.city;
+
+            const adresse = document.createElement("p");
+            adresse.textContent = "Adresse : " + (activite.address || "Non renseignée");
+
+            const description = document.createElement("p");
+            description.textContent = activite.description || "";
+
+            const prix = document.createElement("p");
+            prix.textContent = activite.price == null
+                ? "Prix non renseigné"
+                : Number(activite.price) === 0
+                    ? "Gratuit"
+                    : activite.price + " €";
+
+            const accepter = document.createElement("button");
+            accepter.className = "approve";
+            accepter.textContent = "Accepter";
+
+            accepter.addEventListener("click", () => {
+                modifierActivite(activite.id, true);
+            });
+
+            const refuser = document.createElement("button");
+            refuser.className = "reject";
+            refuser.textContent = "Refuser";
+
+            refuser.addEventListener("click", () => {
+                if (confirm("Supprimer définitivement cette proposition ?")) {
+                    supprimerActivite(activite.id);
+                }
+            });
+
+            carte.append(
+                titre,
+                ville,
+                adresse,
+                description,
+                prix,
+                accepter,
+                refuser
+            );
+
+            listeAttente.appendChild(carte);
+        });
+    }
+
+
+    
+
+    async function supprimerActivite(id) {
+// ===================================
+// GÉOLOCALISATION DES ADRESSES
+// ===================================
+
+let derniereRecherche = 0;
+let fileGeocodage = Promise.resolve();
+
+function rechercherCoordonnees(adresse, ville) {
+    const operation = async () => {
+        // Respecter au moins 1 seconde entre les requêtes
+        const attente = Math.max(
+            0,
+            1100 - (Date.now() - derniereRecherche)
+        );
+
+        if (attente > 0) {
+            await new Promise(resolve => setTimeout(resolve, attente));
+        }
+
+        derniereRecherche = Date.now();
+
+        const recherche = `${adresse}, ${ville}, France`;
+
+        const url =
+            "https://nominatim.openstreetmap.org/search?" +
+            `format=jsonv2&limit=1&countrycodes=fr&q=${encodeURIComponent(recherche)}`;
+
+        const reponse = await fetch(url);
+
+        if (!reponse.ok) {
+            throw new Error("Service de géolocalisation indisponible.");
+        }
+
+        const resultats = await reponse.json();
+
+        if (!resultats.length) {
+            throw new Error("Adresse introuvable.");
+        }
+
+        return {
+            latitude: Number(resultats[0].lat),
+            longitude: Number(resultats[0].lon),
+            adresseTrouvee: resultats[0].display_name
+        };
+    };
+
+    const resultat = fileGeocodage.then(operation);
+
+    fileGeocodage = resultat.catch(() => {});
+
+    return resultat;
+}
+
+// ===================================
+// ACCEPTER UNE ACTIVITÉ
+// ===================================
+
+async function modifierActivite(id, publiee) {
+    const { data: activite, error: erreurLecture } = await client
+        .from("activities")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+    if (erreurLecture || !activite) {
+        alert("Impossible de retrouver cette activité.");
+        return;
+    }
+
+    let coordonnees = {};
+
+    // Ne rechercher que si les coordonnées manquent
+    if (
+        publiee &&
+        (activite.latitude == null || activite.longitude == null)
+    ) {
+        if (!activite.address || !activite.address.trim()) {
+            alert("Cette activité n'a pas d'adresse.");
+            return;
+        }
+
+        try {
+            const resultat = await rechercherCoordonnees(
+                activite.address,
+                activite.city
+            );
+
+            const confirmation = confirm(
+                "Adresse trouvée :\n\n" +
+                resultat.adresseTrouvee +
+                "\n\nConfirmer cette position ?"
+            );
+
+            if (!confirmation) return;
+
+            coordonnees = {
+                latitude: resultat.latitude,
+                longitude: resultat.longitude
+            };
+
+        } catch (erreur) {
+            alert("Géolocalisation impossible : " + erreur.message);
+            return;
+        }
+    }
+
+    const { error } = await client
+        .from("activities")
+        .update({
+            ...coordonnees,
+            published: publiee
+        })
+        .eq("id", id);
+
+    if (error) {
+        alert("Erreur : impossible de valider cette activité.");
+        console.error(error);
+        return;
+    }
+
+    chargerActivitesEnAttente();
+}
+
+// ===================================
+// GÉOLOCALISER LES ACTIVITÉS EXISTANTES
+// ===================================
+
+document.getElementById("geolocaliserExistantes")
+    .addEventListener("click", async () => {
+
+        const message = document.getElementById("messageGeolocalisation");
+        const bouton = document.getElementById("geolocaliserExistantes");
+
+        bouton.disabled = true;
+        message.textContent = "Recherche des activités...";
+
+        const { data, error } = await client
+            .from("activities")
+            .select("*")
+            .eq("published", true);
+
+        if (error) {
+            message.textContent = "Erreur de chargement.";
+            bouton.disabled = false;
+            return;
+        }
+
+        const aGeolocaliser = data.filter(a =>
+            a.latitude == null ||
+            a.longitude == null
+        );
+
+        if (aGeolocaliser.length === 0) {
+            message.textContent = "Toutes les activités ont déjà des coordonnées !";
+            bouton.disabled = false;
+            return;
+        }
+
+        let reussites = 0;
+        let echecs = 0;
+
+        for (const activite of aGeolocaliser) {
+            message.textContent =
+                `Géolocalisation : ${activite.title}...`;
+
+            if (!activite.address || !activite.address.trim()) {
+                echecs++;
+                continue;
+            }
+
+            try {
+                const resultat = await rechercherCoordonnees(
+                    activite.address,
+                    activite.city
+                );
+
+                const { error: erreurUpdate } = await client
+                    .from("activities")
+                    .update({
+                        latitude: resultat.latitude,
+                        longitude: resultat.longitude
+                    })
+                    .eq("id", activite.id);
+
+                if (erreurUpdate) {
+                    echecs++;
+                } else {
+                    reussites++;
+                }
+
+            } catch (erreur) {
+                console.error(activite.title, erreur);
+                echecs++;
+            }
+        }
+
+        message.textContent =
+            `${reussites} activité(s) géolocalisée(s), ` +
+            `${echecs} échec(s).`;
+
+        bouton.disabled = false;
+    });
+
+        const { error } = await client
+            .from("activities")
+            .delete()
+            .eq("id", id);
+
+        if (error) {
+            alert("Erreur : impossible de supprimer cette activité.");
+            console.error(error);
+            return;
+        }
+
+        chargerActivitesEnAttente();
+    }
+
+    document.getElementById("deconnexion")
+        .addEventListener("click", async () => {
+            await client.auth.signOut();
+            dashboard.style.display = "none";
+            connexion.style.display = "block";
+        });
+
+    verifierSession();
+</script>
+
+</body>
+</html>
