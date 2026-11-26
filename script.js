@@ -1,4 +1,3 @@
-
 // ===================================
 // CONFIGURATION SUPABASE
 // ===================================
@@ -6,16 +5,14 @@
 const SUPABASE_URL = "https://glmzqsdccyrnmudwqiqu.supabase.co";
 const SUPABASE_KEY = "sb_publishable_pFZCAikFqvEynZDTwvgIwA_xK7ZpRGZ";
 
-const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ===================================
-// ELEMENTS HTML
+// ÉLÉMENTS HTML
 // ===================================
 
 const recherche = document.getElementById("recherche");
+const boutonRecherche = document.getElementById("boutonRecherche");
 const boutons = document.querySelectorAll("[data-category]");
 const liste = document.getElementById("listeActivites");
 
@@ -23,11 +20,34 @@ let activites = [];
 let categorieActive = "all";
 
 // ===================================
-// CHARGEMENT DES ACTIVITES
+// OUTILS
+// ===================================
+
+// Empêche d'injecter du HTML dans les popups de la carte
+function echapperHTML(texte) {
+    const div = document.createElement("div");
+    div.textContent = texte ?? "";
+    return div.innerHTML;
+}
+
+function texteprix(prix) {
+    if (prix == null) return "Prix à définir";
+    if (Number(prix) === 0) return "Gratuit";
+    return `${prix} €`;
+}
+
+function texteAge(min, max) {
+    if (min == null && max == null) return "Tous âges";
+    if (min != null && max == null) return `À partir de ${min} ans`;
+    if (min == null && max != null) return `Jusqu'à ${max} ans`;
+    return `De ${min} à ${max} ans`;
+}
+
+// ===================================
+// CHARGEMENT DES ACTIVITÉS
 // ===================================
 
 async function chargerActivites() {
-
     liste.innerHTML = "<p>Chargement des activités...</p>";
 
     const { data, error } = await supabaseClient
@@ -36,25 +56,21 @@ async function chargerActivites() {
         .eq("published", true)
         .order("created_at", { ascending: false });
 
-    console.log("Données reçues :", data);
-    console.log("Erreur Supabase :", error);
-
     if (error) {
         console.error(error);
-        liste.innerHTML =
-            "<p>Erreur lors du chargement des activités.</p>";
+        liste.innerHTML = "<p>Erreur lors du chargement des activités.</p>";
         return;
     }
 
     activites = data || [];
 
     afficherActivites();
+    afficherMarqueursActivites();
 }
 
 // ===================================
 // AFFICHAGE ET FILTRAGE
 // ===================================
-
 
 function afficherActivites() {
     const texte = recherche.value.toLowerCase().trim();
@@ -69,8 +85,7 @@ function afficherActivites() {
 
         const correspondRecherche = contenu.includes(texte);
         const correspondCategorie =
-            categorieActive === "all" ||
-            activite.category === categorieActive;
+            categorieActive === "all" || activite.category === categorieActive;
 
         return correspondRecherche && correspondCategorie;
     });
@@ -86,7 +101,6 @@ function afficherActivites() {
         const carte = document.createElement("article");
         carte.className = "activity";
 
-        // Image
         if (activite.image_url) {
             const image = document.createElement("img");
             image.src = activite.image_url;
@@ -95,104 +109,44 @@ function afficherActivites() {
             carte.appendChild(image);
         }
 
-        // Titre
         const titre = document.createElement("h3");
         titre.textContent = activite.title;
 
-        // Catégorie et ville
         const ville = document.createElement("p");
-        ville.textContent =
-            `${activite.category} · ${activite.city}`;
+        ville.textContent = `${activite.category} · ${activite.city}`;
 
-        // Description
         const description = document.createElement("p");
-        description.textContent =
-            activite.description || "Aucune description.";
+        description.textContent = activite.description || "Aucune description.";
 
-        // Prix
         const prix = document.createElement("p");
-        if (activite.price === null) {
-            prix.textContent = "Prix à définir";
-        } else if (Number(activite.price) === 0) {
-            prix.textContent = "Gratuit";
-        } else {
-            prix.textContent = `${activite.price} €`;
-        }
+        prix.textContent = texteprix(activite.price);
 
-        // Âge
-        const age = document.createElement("p");
-        if (activite.min_age == null && activite.max_age == null) {
-            age.textContent = "Tous âges";
-        } else {
-            age.textContent =
-                `Âge : ${activite.min_age ?? "?"} à ${activite.max_age ?? "?"} ans`;
-        }
+        const bouton = document.createElement("button");
+        bouton.textContent = "Voir l'activité";
+        bouton.addEventListener("click", () => afficherDetail(activite));
 
-        // Adresse
-        const adresse = document.createElement("p");
-        adresse.textContent = activite.address
-            ? `📍 ${activite.address}`
-            : "Adresse non renseignée";
-
-        // Horaires
-        const horaires = document.createElement("p");
-        horaires.textContent = activite.schedule
-            ? `🕒 ${activite.schedule}`
-            : "Horaires non renseignés";
-
-            const bouton = document.createElement("button");
-            bouton.textContent = "Voir l'activité";
-
-            bouton.addEventListener("click", () => {
-               afficherDetail(activite);
-            });
-
-            carte.append(
-               titre,
-                ville,
-               description,
-               prix,
-              bouton
-            );
-
-            liste.appendChild(carte);
-
+        carte.append(titre, ville, description, prix, bouton);
         liste.appendChild(carte);
     });
 }
 
-
 // ===================================
-// RECHERCHE
+// PAGE DÉTAIL
 // ===================================
-
-recherche.addEventListener("input", afficherActivites);
-
-// ===================================
-// CATEGORIES
-// ===================================
-
-boutons.forEach((bouton) => {
-
-    bouton.addEventListener("click", () => {
-
-        categorieActive = bouton.dataset.category;
-
-        afficherActivites();
-    });
-});
-
-// ===================================
-// DEMARRAGE
-// ===================================
-
-chargerActivites();
 
 function afficherDetail(activite) {
     liste.innerHTML = "";
 
     const detail = document.createElement("section");
     detail.className = "activity-detail";
+
+    if (activite.image_url) {
+        const image = document.createElement("img");
+        image.src = activite.image_url;
+        image.alt = activite.title;
+        image.className = "activity-image";
+        detail.appendChild(image);
+    }
 
     const titre = document.createElement("h2");
     titre.textContent = activite.title;
@@ -204,72 +158,88 @@ function afficherDetail(activite) {
     ville.textContent = `Ville : ${activite.city}`;
 
     const prix = document.createElement("p");
-    prix.textContent =
-        Number(activite.price) === 0
-            ? "Prix : Gratuit"
-            : activite.price == null
-                ? "Prix à définir"
-                : `Prix : ${activite.price} €`;
+    prix.textContent = `Prix : ${texteprix(activite.price)}`;
 
     const age = document.createElement("p");
-    age.textContent =
-        `Âge : ${activite.min_age ?? "?"} à ${activite.max_age ?? "?"} ans`;
+    age.textContent = `Âge : ${texteAge(activite.min_age, activite.max_age)}`;
 
     const adresse = document.createElement("p");
-    adresse.textContent = `Adresse : ${activite.address || "Non renseignée"}`;
+    adresse.textContent = `📍 Adresse : ${activite.address || "Non renseignée"}`;
 
     const horaires = document.createElement("p");
-    horaires.textContent = `Horaires : ${activite.schedule || "Non renseignés"}`;
-
-    if (activite.image_url) {
-        const image = document.createElement("img");
-        image.src = activite.image_url;
-        image.alt = activite.title;
-        image.className = "activity-image";
-        detail.appendChild(image);
-    }
+    horaires.textContent = `🕒 Horaires : ${activite.schedule || "Non renseignés"}`;
 
     const retour = document.createElement("button");
     retour.textContent = "← Retour aux activités";
     retour.addEventListener("click", afficherActivites);
 
-    detail.append(
-        titre,
-        description,
-        ville,
-        prix,
-        age,
-        adresse,
-        horaires,
-        retour
-    );
-
+    detail.append(titre, description, ville, prix, age, adresse, horaires, retour);
     liste.appendChild(detail);
+
+    document.getElementById("activites").scrollIntoView({ behavior: "smooth" });
 }
+
+// ===================================
+// RECHERCHE
+// ===================================
+
+recherche.addEventListener("input", afficherActivites);
+
+boutonRecherche.addEventListener("click", () => {
+    afficherActivites();
+    document.getElementById("activites").scrollIntoView({ behavior: "smooth" });
+});
+
+// ===================================
+// CATÉGORIES
+// ===================================
+
+boutons.forEach((bouton) => {
+    bouton.addEventListener("click", () => {
+        categorieActive = bouton.dataset.category;
+
+        boutons.forEach(b => b.classList.remove("active"));
+        bouton.classList.add("active");
+
+        afficherActivites();
+    });
+});
+
+// ===================================
+// FORMULAIRE "PROPOSER UNE ACTIVITÉ"
+// ===================================
 
 const formulaire = document.getElementById("formActivite");
 const messageFormulaire = document.getElementById("messageFormulaire");
 
+function nombreOuNull(id) {
+    const valeur = document.getElementById(id).value;
+    return valeur === "" ? null : Number(valeur);
+}
+
 formulaire.addEventListener("submit", async (event) => {
     event.preventDefault();
+
+    const ageMin = nombreOuNull("ageMin");
+    const ageMax = nombreOuNull("ageMax");
+
+    if (ageMin != null && ageMax != null && ageMin > ageMax) {
+        messageFormulaire.textContent =
+            "L'âge minimum doit être inférieur à l'âge maximum.";
+        return;
+    }
 
     messageFormulaire.textContent = "Envoi en cours...";
 
     const nouvelleActivite = {
         title: document.getElementById("titre").value.trim(),
         description: document.getElementById("description").value.trim(),
-        category: document.getElementById("categorie").value.trim().toLowerCase(),
+        category: document.getElementById("categorie").value,
         city: document.getElementById("ville").value.trim(),
         address: document.getElementById("adresse").value.trim(),
-        price: document.getElementById("prix").value === ""
-            ? null
-            : Number(document.getElementById("prix").value),
-        min_age: document.getElementById("ageMin").value === ""
-            ? null
-            : Number(document.getElementById("ageMin").value),
-        max_age: document.getElementById("ageMax").value === ""
-            ? null
-            : Number(document.getElementById("ageMax").value),
+        price: nombreOuNull("prix"),
+        min_age: ageMin,
+        max_age: ageMax,
         schedule: document.getElementById("horaires").value.trim(),
         published: false
     };
@@ -280,8 +250,7 @@ formulaire.addEventListener("submit", async (event) => {
 
     if (error) {
         console.error(error);
-        messageFormulaire.textContent =
-            "Erreur lors de l'envoi. Réessaie.";
+        messageFormulaire.textContent = "Erreur lors de l'envoi. Réessaie.";
         return;
     }
 
@@ -291,16 +260,19 @@ formulaire.addEventListener("submit", async (event) => {
     formulaire.reset();
 });
 
-// Création de la carte
+// ===================================
+// CARTE
+// ===================================
+
 const map = L.map("map").setView([47.36, -1.18], 11);
 
-// Fond de carte OpenStreetMap
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
     maxZoom: 19
 }).addTo(map);
 
-let marqueurs = [];
+let marqueursActivites = [];
+let marqueurUtilisateur = null;
 
 function distanceKm(lat1, lon1, lat2, lon2) {
     const R = 6371;
@@ -311,68 +283,47 @@ function distanceKm(lat1, lon1, lat2, lon2) {
 
     const a =
         Math.sin(dLat / 2) ** 2 +
-        Math.cos(rad(lat1)) *
-        Math.cos(rad(lat2)) *
-        Math.sin(dLon / 2) ** 2;
+        Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
 
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Afficher les activités sur la carte
-function afficherSurCarte(latitudeUtilisateur, longitudeUtilisateur) {
-    marqueurs.forEach(m => map.removeLayer(m));
-    marqueurs = [];
-
-    const positionUtilisateur = L.marker([
-        latitudeUtilisateur,
-        longitudeUtilisateur
-    ]).addTo(map);
-
-    positionUtilisateur.bindPopup("📍 Vous êtes ici !");
-    marqueurs.push(positionUtilisateur);
-
-    const activitesAvecPosition = activites.filter(a =>
+function activitesAvecPosition() {
+    return activites.filter(a =>
+        a.latitude != null &&
+        a.longitude != null &&
         Number.isFinite(Number(a.latitude)) &&
-        Number.isFinite(Number(a.longitude)) &&
-        a.latitude !== null &&
-        a.longitude !== null
+        Number.isFinite(Number(a.longitude))
     );
-
-    activitesAvecPosition.forEach(activite => {
-        const distance = distanceKm(
-            latitudeUtilisateur,
-            longitudeUtilisateur,
-            Number(activite.latitude),
-            Number(activite.longitude)
-        );
-
-        const marqueur = L.marker([
-            Number(activite.latitude),
-            Number(activite.longitude)
-        ]).addTo(map);
-
-        marqueur.bindPopup(`
-            <strong>${activite.title}</strong><br>
-            ${activite.city}<br>
-            À ${distance.toFixed(1)} km de vous
-        `);
-
-        marqueurs.push(marqueur);
-    });
-
-    map.setView(
-        [latitudeUtilisateur, longitudeUtilisateur],
-        12
-    );
-
-    const message = document.getElementById("messageLocalisation");
-
-    message.textContent = activitesAvecPosition.length
-        ? `${activitesAvecPosition.length} activités affichées sur la carte.`
-        : "Aucune activité n'a encore de coordonnées GPS.";
 }
 
-// Demander la position uniquement après un clic
+// Affiche les activités sur la carte (avec la distance si on connaît la position)
+function afficherMarqueursActivites(latUtilisateur = null, lonUtilisateur = null) {
+    marqueursActivites.forEach(m => map.removeLayer(m));
+    marqueursActivites = [];
+
+    activitesAvecPosition().forEach(activite => {
+        const lat = Number(activite.latitude);
+        const lon = Number(activite.longitude);
+
+        let texteDistance = "";
+        if (latUtilisateur != null) {
+            const distance = distanceKm(latUtilisateur, lonUtilisateur, lat, lon);
+            texteDistance = `<br>À ${distance.toFixed(1)} km de vous`;
+        }
+
+        const marqueur = L.marker([lat, lon]).addTo(map);
+
+        marqueur.bindPopup(`
+            <strong>${echapperHTML(activite.title)}</strong><br>
+            ${echapperHTML(activite.city)}
+            ${texteDistance}
+        `);
+
+        marqueursActivites.push(marqueur);
+    });
+}
+
 document.getElementById("localiser").addEventListener("click", () => {
     const message = document.getElementById("messageLocalisation");
 
@@ -385,12 +336,25 @@ document.getElementById("localiser").addEventListener("click", () => {
 
     navigator.geolocation.getCurrentPosition(
         position => {
-            afficherSurCarte(
-                position.coords.latitude,
-                position.coords.longitude
-            );
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            if (marqueurUtilisateur) map.removeLayer(marqueurUtilisateur);
+
+            marqueurUtilisateur = L.marker([lat, lon])
+                .addTo(map)
+                .bindPopup("📍 Vous êtes ici !")
+                .openPopup();
+
+            afficherMarqueursActivites(lat, lon);
+            map.setView([lat, lon], 12);
+
+            const nombre = activitesAvecPosition().length;
+            message.textContent = nombre
+                ? `${nombre} activité(s) affichée(s) sur la carte.`
+                : "Aucune activité n'a encore de coordonnées GPS.";
         },
-        erreur => {
+        () => {
             message.textContent =
                 "Position indisponible. Vérifie les autorisations GPS.";
         },
@@ -400,3 +364,9 @@ document.getElementById("localiser").addEventListener("click", () => {
         }
     );
 });
+
+// ===================================
+// DÉMARRAGE
+// ===================================
+
+chargerActivites();
